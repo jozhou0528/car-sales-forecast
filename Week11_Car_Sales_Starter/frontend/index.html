@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Car Sales Forecast | Six-Month Model</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f2f6f9; color: #17324d; margin: 0; }
+    main { max-width: 650px; margin: 55px auto; padding: 32px; background: white;
+           border-radius: 14px; box-shadow: 0 5px 25px #152c4215; }
+    h1 { margin: 0 0 10px; }
+    p { color: #4b6374; line-height: 1.5; }
+    .inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    label { display: block; font-weight: bold; font-size: 14px; }
+    input { box-sizing: border-box; width: 100%; padding: 11px; margin-top: 5px;
+            border: 1px solid #b8cbd8; border-radius: 7px; font-size: 16px; }
+    button { cursor: pointer; padding: 11px 17px; border: 0; border-radius: 7px;
+             background: #116a7b; color: white; font-size: 15px; margin: 18px 6px 0 0; }
+    button.secondary { background: #dce8ee; color: #17324d; }
+    #result { margin-top: 22px; font-weight: bold; font-size: 19px; }
+    .small { font-size: 13px; }
+    @media (max-width: 530px) { main { margin: 12px; padding: 20px; }
+      .inputs { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Next-Month Car Sales Forecast</h1>
+  <p>Enter six consecutive months of car sales, from <b>oldest</b> to
+     <b>most recent</b>. The model predicts the following month.</p>
+  <form id="forecast-form">
+    <div class="inputs">
+      <label>Month -6 (oldest)<input type="number" step="any" min="0" required></label>
+      <label>Month -5<input type="number" step="any" min="0" required></label>
+      <label>Month -4<input type="number" step="any" min="0" required></label>
+      <label>Month -3<input type="number" step="any" min="0" required></label>
+      <label>Month -2<input type="number" step="any" min="0" required></label>
+      <label>Month -1 (newest)<input type="number" step="any" min="0" required></label>
+    </div>
+    <button type="submit">Predict Next Month</button>
+    <button type="button" class="secondary" id="example">Fill 1968 Example</button>
+  </form>
+  <div id="result" aria-live="polite"></div>
+  <p class="small">Demo data: 1968 Jul–Dec → prediction for Jan 1969.
+     This is a classroom forecasting exercise, not a validated commercial forecast.</p>
+</main>
+<script>
+  const inputs = [...document.querySelectorAll("input")];
+  const result = document.getElementById("result");
+  document.getElementById("example").addEventListener("click", () => {
+    const demo = [18024, 16722, 14385, 21342, 17180, 14577];
+    inputs.forEach((input, index) => input.value = demo[index]);
+    result.textContent = "";
+  });
+  document.getElementById("forecast-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const sales = inputs.map(input => Number(input.value));
+    if (sales.length !== 6 || sales.some(v => !Number.isFinite(v) || v < 0)) {
+      result.textContent = "Please enter six valid, nonnegative sales figures.";
+      return;
+    }
+    result.textContent = "Calculating prediction...";
+    try {
+      const response = await fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sales })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "Prediction failed.");
+      result.textContent = "Predicted next-month sales: " +
+        Number(data.prediction).toLocaleString("en-US", { maximumFractionDigits: 0 });
+    } catch (error) {
+      result.textContent = "Error: " + error.message;
+    }
+  });
+</script>
+</body>
+</html>
